@@ -104,6 +104,12 @@ body{margin:0;font-family:Segoe UI;background:#f4faff;color:#003366}
 </head>
 
 <body>
+    <div id="alertBox" style="
+position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+background:#0077cc;color:white;padding:12px 20px;border-radius:8px;
+box-shadow:0 6px 15px rgba(0,0,0,0.2);display:none;z-index:9999;">
+Download started...
+</div>
 
 <div class="header">MAP-TECH 2K26 Admin Dashboard</div>
 
@@ -130,11 +136,21 @@ body{margin:0;font-family:Segoe UI;background:#f4faff;color:#003366}
 <div class="modal" id="modal" onclick="this.style.display='none'">
   <img id="modalImg">
 </div>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
 import { getFirestore, collection, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
+let downloadingPDF = false;
+function showAlert(msg){
+  const box = document.getElementById("alertBox");
+  box.innerText = msg;
+  box.style.display = "block";
+  setTimeout(()=> box.style.display="none", 2500);
+}
+
+/* ------------------ FIREBASE ------------------ */
 const firebaseConfig = {
   apiKey: "AIzaSyAjDdnn_0_K0iQkSCLd5RcgMrP-DOjrzzU",
   authDomain: "map-tech2k26.firebaseapp.com",
@@ -148,346 +164,236 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 const list = document.getElementById("list");
-let allData=[];
+let allData = [];
 
+/* ------------------ RENDER ------------------ */
 function render(data){
-  list.innerHTML="";
+  list.innerHTML = "";
   data.forEach(d=>{
-    // Sanitize all user inputs to prevent XSS
-    const name = (d.name || '').replace(/[<>'"&]/g, c => ({'<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;','&':'&amp;'}[c]));
-    const event = (d.event || '').replace(/[<>'"&]/g, c => ({'<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;','&':'&amp;'}[c]));
-    const institute = (d.institute || '').replace(/[<>'"&]/g, c => ({'<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;','&':'&amp;'}[c]));
-    const dept = (d.dept || '').replace(/[<>'"&]/g, c => ({'<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;','&':'&amp;'}[c]));
-    const phone = (d.phone || '').replace(/[<>'"&]/g, c => ({'<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;','&':'&amp;'}[c]));
-    const email = (d.email || '').replace(/[<>'"&]/g, c => ({'<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;','&':'&amp;'}[c]));
-    const screenshot = (d.screenshot || '').replace(/['"]/g, c => ({'\'':'&#39;','"':'&quot;'}[c]));
-    
-    list.innerHTML+=`
-      <div class="card" data-id="${d.id}">
-        <h3>${name}</h3>
-        <span class="badge">${event}</span>
-        <p><b>Institute:</b> ${institute}</p>
-        <p><b>Dept:</b> ${dept}</p>
-        <p><b>Phone:</b> ${phone}</p>
-        <p><b>Email:</b> ${email}</p>
+    list.innerHTML += `
+      <div class="card">
+        <h3>${d.name || ''}</h3>
+        <span class="badge">${d.event || ''}</span>
+        <p><b>Institute:</b> ${d.institute || ''}</p>
+        <p><b>Dept:</b> ${d.dept || ''}</p>
+        <p><b>Phone:</b> ${d.phone || ''}</p>
+        <p><b>Email:</b> ${d.email || ''}</p>
 
         <div class="card-buttons">
-          <button class="btn view-payment" data-screenshot="${screenshot}">View Payment</button>
-          <button class="btn delete-entry" style="background:#dc3545" data-id="${d.id}" data-name="${name}">Delete</button>
+          <button class="btn" onclick="viewImg('${d.screenshot}')">View Payment</button>
+          <button class="btn" style="background:#dc3545" onclick="deleteEntry('${d.id}','${d.name}')">Delete</button>
         </div>
       </div>
     `;
   });
-  
-  // Add event listeners for delete buttons
-  document.querySelectorAll('.delete-entry').forEach(btn=>{
-    btn.addEventListener('click', function(){
-      const id=this.getAttribute('data-id');
-      const name=this.getAttribute('data-name');
-      deleteEntry(id,name);
-    });
-  });
-  
-  // Add event listeners for view payment buttons
-  document.querySelectorAll('.view-payment').forEach(btn=>{
-    btn.addEventListener('click', function(){
-      viewImg(this.getAttribute('data-screenshot'));
-    });
-  });
 }
 
-window.viewImg=url=>{
-  modalImg.src=url;
-  modal.style.display="flex";
+/* ------------------ VIEW IMAGE ------------------ */
+window.viewImg = (url)=>{
+  document.getElementById("modalImg").src = url;
+  document.getElementById("modal").style.display="flex";
 };
 
-window.deleteEntry=async(id,name)=>{
-  if(confirm(`Are you sure you want to delete registration for ${name}?`)){
-    try{
-      await deleteDoc(doc(db,"registrations",id));
-      allData=allData.filter(d=>d.id!==id);
-      render(allData);
-      alert("Registration deleted successfully!");
-    }catch(err){
-      console.error("Delete error:",err);
-      alert("Failed to delete registration. Please try again.");
-    }
+/* ------------------ DELETE ------------------ */
+window.deleteEntry = async (id,name)=>{
+  if(confirm(`Delete registration of ${name}?`)){
+    await deleteDoc(doc(db,"registrations",id));
+    allData = allData.filter(d=>d.id!==id);
+    render(allData);
   }
 };
 
-const snap=await getDocs(collection(db,"registrations"));
-snap.forEach(doc=>allData.push({id:doc.id,...doc.data()}));
+/* ------------------ FETCH DATA ------------------ */
+const snap = await getDocs(collection(db,"registrations"));
+snap.forEach(doc=> allData.push({id:doc.id,...doc.data()}));
 render(allData);
 
-// SEARCH
-search.oninput=()=>render(allData.filter(d=>d.name.toLowerCase().includes(search.value.toLowerCase())));
-
-// FILTER
-filter.onchange=()=>render(filter.value?allData.filter(d=>d.event===filter.value):allData);
-
-// ENHANCED EXCEL with professional styling
-window.downloadExcel=()=>{
-  const wb=XLSX.utils.book_new();
-  
-  // Main sheet with all data
-  const mainData=allData.map(d=>({
-    Name:d.name,
-    Institute:d.institute,
-    Department:d.dept,
-    Phone:d.phone,
-    Email:d.email,
-    Event:d.event
-  }));
-  
-  const ws=XLSX.utils.json_to_sheet(mainData);
-  
-  // Set column widths
-  ws['!cols']=[
-    {wch:20},{wch:30},{wch:20},{wch:15},{wch:30},{wch:25}
-  ];
-  
-  // Style header row
-  const headerCells=['A1','B1','C1','D1','E1','F1'];
-  headerCells.forEach(cell=>{
-    if(ws[cell]){
-      ws[cell].s={
-        fill:{fgColor:{rgb:"0077CC"}},
-        font:{bold:true,color:{rgb:"FFFFFF"},sz:12},
-        alignment:{horizontal:"center",vertical:"center"}
-      };
-    }
-  });
-  
-  // Add filters
-  ws['!autofilter']={ref:`A1:F${mainData.length+1}`};
-  
-  XLSX.utils.book_append_sheet(wb,ws,"All Registrations");
-  
-  // Create sheets by event type
-  const events=[...new Set(allData.map(d=>d.event))];
-  events.forEach(event=>{
-    const eventData=allData.filter(d=>d.event===event).map(d=>({
-      Name:d.name,
-      Institute:d.institute,
-      Department:d.dept,
-      Phone:d.phone,
-      Email:d.email
-    }));
-    
-    const eventWs=XLSX.utils.json_to_sheet(eventData);
-    eventWs['!cols']=[{wch:20},{wch:30},{wch:20},{wch:15},{wch:30}];
-    
-    const eventHeaderCells=['A1','B1','C1','D1','E1'];
-    eventHeaderCells.forEach(cell=>{
-      if(eventWs[cell]){
-        eventWs[cell].s={
-          fill:{fgColor:{rgb:"0077CC"}},
-          font:{bold:true,color:{rgb:"FFFFFF"},sz:12},
-          alignment:{horizontal:"center",vertical:"center"}
-        };
-      }
-    });
-    
-    eventWs['!autofilter']={ref:`A1:E${eventData.length+1}`};
-    
-    const safeName=event.substring(0,31).replace(/[:\\\/\?\*\[\]']/g,'');
-    XLSX.utils.book_append_sheet(wb,eventWs,safeName);
-  });
-  
-  // Summary statistics sheet
-  const summaryData=events.map(event=>({
-    Event:event,
-    'Total Registrations':allData.filter(d=>d.event===event).length,
-    'Unique Institutes':new Set(allData.filter(d=>d.event===event).map(d=>d.institute)).size
-  }));
-  
-  summaryData.push({
-    Event:'TOTAL',
-    'Total Registrations':allData.length,
-    'Unique Institutes':new Set(allData.map(d=>d.institute)).size
-  });
-  
-  const summaryWs=XLSX.utils.json_to_sheet(summaryData);
-  summaryWs['!cols']=[{wch:25},{wch:20},{wch:20}];
-  
-  const summaryHeaders=['A1','B1','C1'];
-  summaryHeaders.forEach(cell=>{
-    if(summaryWs[cell]){
-      summaryWs[cell].s={
-        fill:{fgColor:{rgb:"0077CC"}},
-        font:{bold:true,color:{rgb:"FFFFFF"},sz:12},
-        alignment:{horizontal:"center",vertical:"center"}
-      };
-    }
-  });
-  
-  // Style total row
-  const totalRowNum=summaryData.length+1;
-  ['A','B','C'].forEach(col=>{
-    const cell=col+totalRowNum;
-    if(summaryWs[cell]){
-      summaryWs[cell].s={
-        fill:{fgColor:{rgb:"FFD966"}},
-        font:{bold:true,sz:11},
-        alignment:{horizontal:"center",vertical:"center"}
-      };
-    }
-  });
-  
-  XLSX.utils.book_append_sheet(wb,summaryWs,"Summary");
-  
-  XLSX.writeFile(wb,"MAP-TECH-2K26-Registrations.xlsx");
+/* ------------------ SEARCH ------------------ */
+search.oninput = ()=>{
+  render(allData.filter(d=>d.name?.toLowerCase().includes(search.value.toLowerCase())));
 };
 
-// ENHANCED PDF with professional styling
-window.downloadPDF=()=>{
-  const { jsPDF }=window.jspdf;
-  const doc=new jsPDF('p','mm','a4');
-  
-  const pageWidth=doc.internal.pageSize.getWidth();
-  const pageHeight=doc.internal.pageSize.getHeight();
-  let yPos=20;
-  
-  // Helper function for new page
-  const addNewPage=()=>{
-    doc.addPage();
-    yPos=20;
-  };
-  
-  // Footer with page numbers
-  const addFooter=()=>{
-    const pageNum=doc.internal.getNumberOfPages();
-    doc.setFontSize(9);
-    doc.setTextColor(100);
-    doc.text(`Page ${pageNum}`,pageWidth-30,pageHeight-10);
-    doc.text('MAP-TECH 2K26',15,pageHeight-10);
-  };
-  
-  // COVER PAGE
+/* ------------------ FILTER ------------------ */
+filter.onchange = ()=>{
+  render(filter.value ? allData.filter(d=>d.event===filter.value) : allData);
+};
+
+/* ------------------ EXCEL EXPORT ------------------ */
+window.downloadExcel = function () {
+  if (!allData || !allData.length) return alert("No data");
+
+  try {
+    const wb = XLSX.utils.book_new();
+
+    // Sheet 1 – Full Data
+    const main = XLSX.utils.json_to_sheet(allData.map(d => ({
+      Name: d.name || '',
+      Institute: d.institute || '',
+      Department: d.dept || '',
+      Phone: d.phone || '',
+      Email: d.email || '',
+      Event: d.event || ''
+    })));
+    XLSX.utils.book_append_sheet(wb, main, "All Registrations");
+
+    // Event Sheets (FIXED NAME)
+    const events = [...new Set(allData.map(d => d.event))];
+    events.forEach(ev => {
+      const cleanName = (ev || "Event")
+        .replace(/[:\\\/\?\*\[\]]/g, "")  // remove invalid chars
+        .substring(0, 31);
+
+      const ws = XLSX.utils.json_to_sheet(
+        allData.filter(d => d.event === ev).map(d => ({
+          Name: d.name || '',
+          Phone: d.phone || '',
+          Email: d.email || '',
+          Institute: d.institute || ''
+        }))
+      );
+
+      XLSX.utils.book_append_sheet(wb, ws, cleanName);
+    });
+
+    // Summary Sheet
+    const summary = XLSX.utils.json_to_sheet(events.map(ev => ({
+      Event: ev,
+      Registrations: allData.filter(d => d.event === ev).length
+    })));
+    XLSX.utils.book_append_sheet(wb, summary, "Summary");
+
+    XLSX.writeFile(wb, "MAP-TECH-2K26-Professional-Report.xlsx");
+
+    if (typeof showAlert === "function") {
+      showAlert("Excel download started 📊");
+    }
+
+  } catch (err) {
+    console.error("Excel Export Error:", err);
+    alert("Excel download failed.");
+  }
+};
+
+/* ------------------ PDF EXPORT ------------------ */
+window.downloadPDF = function () {
+  if (downloadingPDF) return;
+  if (!allData.length) return alert("No data");
+
+  downloadingPDF = true;
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF('p','mm','a4');
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  let y = 20;
+
+  // Cover Header
   doc.setFillColor(0,119,204);
-  doc.rect(0,0,pageWidth,60,'F');
-  
+  doc.rect(0,0,pageWidth,40,"F");
+
   doc.setTextColor(255,255,255);
-  doc.setFontSize(28);
-  doc.setFont('helvetica','bold');
-  doc.text('MAP-TECH 2K26',pageWidth/2,30,{align:'center'});
-  
-  doc.setFontSize(16);
-  doc.setFont('helvetica','normal');
-  doc.text('Registration Report',pageWidth/2,45,{align:'center'});
-  
+  doc.setFontSize(24);
+  doc.setFont("helvetica","bold");
+  doc.text("MAP-TECH 2K26", pageWidth/2, 18, {align:"center"});
+
+  doc.setFontSize(14);
+  doc.setFont("helvetica","normal");
+  doc.text("State Level Technical Event Report", pageWidth/2, 28, {align:"center"});
+
+  y = 55;
   doc.setTextColor(0,0,0);
-  doc.setFontSize(12);
-  yPos=80;
-  
-  // Summary Section
-  doc.setFont('helvetica','bold');
+
+  // Summary
+  doc.setFontSize(14);
+  doc.setFont("helvetica","bold");
+  doc.text("Summary", 15, y);
+  y += 10;
+
+  const events = [...new Set(allData.map(d=>d.event))];
+  doc.setFontSize(11);
+  doc.setFont("helvetica","normal");
+  doc.text(`Total Registrations: ${allData.length}`, 20, y);
+  y += 7;
+
+  events.forEach(ev=>{
+    const count = allData.filter(d=>d.event===ev).length;
+    doc.text(`${ev}: ${count}`, 20, y);
+    y += 7;
+  });
+
+  // Details Pages
+  doc.addPage();
+  y = 20;
+
+  events.forEach(event=>{
+    if (y > pageHeight - 30) { doc.addPage(); y = 20; }
+
+    doc.setFillColor(0,119,204);
+    doc.rect(10,y-6,pageWidth-20,10,"F");
+
+    doc.setTextColor(255,255,255);
+    doc.setFontSize(12);
+    doc.setFont("helvetica","bold");
+    doc.text(event, 15, y);
+
+    y += 12;
+    doc.setTextColor(0,0,0);
+
+    const eventData = allData.filter(d=>d.event===event);
+
+    eventData.forEach(d=>{
+      if (y > pageHeight - 30) { doc.addPage(); y = 20; }
+
+      doc.setFillColor(240,247,255);
+      doc.rect(12,y-5,pageWidth-24,24,"F");
+
+      doc.setFontSize(11);
+      doc.setFont("helvetica","bold");
+      doc.text(d.name, 18, y);
+
+      doc.setFont("helvetica","normal");
+      doc.setFontSize(10);
+      doc.text(`Institute: ${d.institute}`, 18, y+6);
+      doc.text(`Dept: ${d.dept}`, 18, y+11);
+      doc.text(`Phone: ${d.phone}`, 18, y+16);
+
+      y += 28;
+    });
+
+    y += 5;
+  });
+
+  // Table Page
+  doc.addPage();
   doc.setFontSize(16);
   doc.setTextColor(0,119,204);
-  doc.text('Summary Statistics',15,yPos);
-  yPos+=10;
-  
-  doc.setFontSize(11);
-  doc.setTextColor(0,0,0);
-  doc.setFont('helvetica','normal');
-  
-  const events=[...new Set(allData.map(d=>d.event))];
-  const totalRegs=allData.length;
-  const totalInstitutes=new Set(allData.map(d=>d.institute)).size;
-  
-  doc.text(`Total Registrations: ${totalRegs}`,20,yPos);
-  yPos+=7;
-  doc.text(`Total Events: ${events.length}`,20,yPos);
-  yPos+=7;
-  doc.text(`Unique Institutes: ${totalInstitutes}`,20,yPos);
-  yPos+=12;
-  
-  // Event breakdown
-  doc.setFont('helvetica','bold');
-  doc.text('Event Breakdown:',20,yPos);
-  yPos+=7;
-  
-  doc.setFont('helvetica','normal');
-  events.forEach(event=>{
-    const count=allData.filter(d=>d.event===event).length;
-    doc.text(`• ${event}: ${count} registrations`,25,yPos);
-    yPos+=6;
-  });
-  
-  // DETAILED REGISTRATIONS
-  addNewPage();
-  
-  events.forEach((event,idx)=>{
-    const eventData=allData.filter(d=>d.event===event);
-    
-    // Event Header
-    doc.setFillColor(0,119,204);
-    doc.rect(10,yPos-6,pageWidth-20,10,'F');
-    
-    doc.setTextColor(255,255,255);
-    doc.setFontSize(13);
-    doc.setFont('helvetica','bold');
-    doc.text(event,15,yPos);
-    yPos+=12;
-    
-    doc.setTextColor(0,0,0);
-    doc.setFontSize(9);
-    
-    eventData.forEach((d,i)=>{
-      // Check if we need a new page
-      if(yPos>pageHeight-40){
-        addNewPage();
-        // Repeat event header on new page
-        doc.setFillColor(0,119,204);
-        doc.rect(10,yPos-6,pageWidth-20,10,'F');
-        doc.setTextColor(255,255,255);
-        doc.setFontSize(13);
-        doc.setFont('helvetica','bold');
-        doc.text(event+' (continued)',15,yPos);
-        yPos+=12;
-        doc.setTextColor(0,0,0);
-        doc.setFontSize(9);
-      }
-      
-      // Registration card
-      doc.setFillColor(245,250,255);
-      doc.rect(15,yPos-4,pageWidth-30,28,'F');
-      
-      doc.setDrawColor(0,119,204);
-      doc.setLineWidth(0.5);
-      doc.rect(15,yPos-4,pageWidth-30,28);
-      
-      doc.setFont('helvetica','bold');
-      doc.setFontSize(11);
-      doc.text(d.name,20,yPos+2);
-      
-      doc.setFont('helvetica','normal');
-      doc.setFontSize(9);
-      doc.text(`Institute: ${d.institute}`,20,yPos+8);
-      doc.text(`Department: ${d.dept}`,20,yPos+13);
-      doc.text(`Phone: ${d.phone}`,20,yPos+18);
-      doc.text(`Email: ${d.email}`,20,yPos+23);
-      
-      yPos+=32;
-    });
-    
-    yPos+=5;
-    
-    // Add page break between events if not last
-    if(idx<events.length-1 && yPos>pageHeight-80){
-      addNewPage();
+  doc.text("Complete Participant List", 15, 20);
+
+  doc.setFontSize(10);
+  let startY = 30;
+
+  allData.forEach((d,i)=>{
+    if(startY > pageHeight-15){
+      doc.addPage();
+      startY = 20;
     }
+
+    doc.text(`${i+1}. ${d.name}`,15,startY);
+    doc.text(d.event,70,startY);
+    doc.text(d.phone,120,startY);
+    startY += 7;
   });
-  
-  // Add footer to all pages
-  const totalPages=doc.internal.getNumberOfPages();
-  for(let i=1;i<=totalPages;i++){
-    doc.setPage(i);
-    addFooter();
+
+  doc.save("MAP-TECH-2K26-Professional-Report.pdf");
+
+  if (typeof showAlert === "function") {
+    showAlert("PDF download started 📄");
   }
-  
-  doc.save('MAP-TECH-2K26-Registrations.pdf');
+
+  setTimeout(()=> downloadingPDF = false, 2000);
 };
+
+
 </script>
 
 </body>
