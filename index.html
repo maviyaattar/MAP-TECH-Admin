@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MAP-TECH 2K26 Admin</title>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+body{margin:0;font-family:Segoe UI;background:#f4faff;color:#003366}
+
+/* HEADER */
+.header{
+  background:#0077cc;color:white;text-align:center;
+  padding:15px;font-weight:bold;font-size:18px;
+}
+
+/* SEARCH */
+.controls{
+  display:flex;gap:10px;padding:10px;
+  flex-wrap:wrap;
+}
+.controls input,.controls select{
+  flex:1;padding:10px;border-radius:8px;border:1px solid #ccc;
+}
+
+/* SKELETON */
+.skeleton{
+  height:120px;
+  background:linear-gradient(90deg,#eee,#ddd,#eee);
+  border-radius:10px;
+  animation:shimmer 1.2s infinite;
+  margin-bottom:10px;
+}
+@keyframes shimmer{0%{background-position:-200px}100%{background-position:200px}}
+
+/* CARDS */
+.container{padding:10px}
+.card{
+  background:white;border-radius:12px;
+  padding:12px;margin-bottom:12px;
+  box-shadow:0 6px 15px rgba(0,0,0,0.08);
+  animation:fadeUp .5s ease;
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1}}
+
+.card h3{margin:0}
+.badge{
+  background:#0077cc;color:white;
+  padding:3px 8px;border-radius:12px;font-size:12px
+}
+.card p{margin:3px 0;font-size:14px}
+
+.card-buttons{
+  display:flex;gap:8px;margin-top:8px
+}
+.btn{
+  flex:1;padding:6px;border:none;border-radius:6px;
+  background:#0077cc;color:white;cursor:pointer
+}
+
+/* DOWNLOAD */
+.download{
+  text-align:center;padding:20px
+}
+.download button{
+  margin:5px;padding:10px 15px;border:none;
+  border-radius:8px;background:#0077cc;color:white
+}
+
+/* MODAL */
+.modal{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,0.6);
+  justify-content:center;align-items:center;
+}
+.modal img{max-width:90%;border-radius:10px}
+
+/* MOBILE */
+@media(max-width:600px){
+  .card-buttons{flex-direction:column}
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">MAP-TECH 2K26 Admin Dashboard</div>
+
+<div class="controls">
+  <input type="text" id="search" placeholder="Search name...">
+  <select id="filter">
+    <option value="">All Events</option>
+    <option>Paper Presentation</option>
+    <option>Poster Presentation</option>
+    <option>Technical Quiz</option>
+  </select>
+</div>
+
+<div class="container" id="list">
+  <div class="skeleton"></div>
+  <div class="skeleton"></div>
+</div>
+
+<div class="download">
+  <button onclick="downloadExcel()">Download Excel</button>
+  <button onclick="downloadPDF()">Download PDF</button>
+</div>
+
+<div class="modal" id="modal" onclick="this.style.display='none'">
+  <img id="modalImg">
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAjDdnn_0_K0iQkSCLd5RcgMrP-DOjrzzU",
+  authDomain: "map-tech2k26.firebaseapp.com",
+  projectId: "map-tech2k26",
+  storageBucket: "map-tech2k26.appspot.com",
+  messagingSenderId: "344931361614",
+  appId: "1:344931361614:web:d8a3d1141bbf325e41341f"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const list = document.getElementById("list");
+let allData=[];
+
+function render(data){
+  list.innerHTML="";
+  data.forEach(d=>{
+    list.innerHTML+=`
+      <div class="card">
+        <h3>${d.name}</h3>
+        <span class="badge">${d.event}</span>
+        <p><b>Institute:</b> ${d.institute}</p>
+        <p><b>Dept:</b> ${d.dept}</p>
+        <p><b>Phone:</b> ${d.phone}</p>
+        <p><b>Email:</b> ${d.email}</p>
+
+        <div class="card-buttons">
+          <button class="btn" onclick="viewImg('${d.screenshot}')">View Payment</button>
+        </div>
+      </div>
+    `;
+  });
+}
+
+window.viewImg=url=>{
+  modalImg.src=url;
+  modal.style.display="flex";
+};
+
+const snap=await getDocs(collection(db,"registrations"));
+snap.forEach(doc=>allData.push(doc.data()));
+render(allData);
+
+// SEARCH
+search.oninput=()=>render(allData.filter(d=>d.name.toLowerCase().includes(search.value.toLowerCase())));
+
+// FILTER
+filter.onchange=()=>render(filter.value?allData.filter(d=>d.event===filter.value):allData);
+
+// EXCEL (Name, Contact, Event only)
+window.downloadExcel=()=>{
+  const data=allData.map(d=>({Name:d.name,Contact:d.phone,Event:d.event}));
+  const ws=XLSX.utils.json_to_sheet(data);
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,"Registrations");
+  XLSX.writeFile(wb,"registrations.xlsx");
+};
+
+// PDF
+window.downloadPDF=()=>{
+  const { jsPDF }=window.jspdf;
+  const doc=new jsPDF();
+  let y=10;
+  allData.forEach(d=>{
+    doc.text(`${d.name} | ${d.phone} | ${d.event}`,10,y);
+    y+=8;
+  });
+  doc.save("registrations.pdf");
+};
+</script>
+
+</body>
+</html>
