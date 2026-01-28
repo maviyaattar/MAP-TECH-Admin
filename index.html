@@ -206,6 +206,7 @@ window.deleteEntry=async(id,name)=>{
     try{
       await deleteDoc(doc(db,"registrations",id));
       allData=allData.filter(d=>d.id!==id);
+      window.allData = allData; // Keep window.allData synchronized
       render(allData);
       alert("Registration deleted successfully!");
     }catch(err){
@@ -230,11 +231,6 @@ window.allData = allData;
 </script>
 
 <script>
-// Initialize window.allData if not set (in case Firebase module fails)
-if (typeof window.allData === 'undefined') {
-  window.allData = [];
-}
-
 // ENHANCED EXCEL with professional styling
 window.downloadExcel=()=>{
   // Check if XLSX library is loaded
@@ -251,11 +247,10 @@ window.downloadExcel=()=>{
     return;
   }
   
-  const allData = window.allData;
   const wb=XLSX.utils.book_new();
   
   // Main sheet with all data
-  const mainData=allData.map(d=>({
+  const mainData=window.allData.map(d=>({
     Name:d.name,
     Institute:d.institute,
     Department:d.dept,
@@ -289,9 +284,9 @@ window.downloadExcel=()=>{
   XLSX.utils.book_append_sheet(wb,ws,"All Registrations");
   
   // Create sheets by event type
-  const events=[...new Set(allData.map(d=>d.event))];
+  const events=[...new Set(window.allData.map(d=>d.event))];
   events.forEach(event=>{
-    const eventData=allData.filter(d=>d.event===event).map(d=>({
+    const eventData=window.allData.filter(d=>d.event===event).map(d=>({
       Name:d.name,
       Institute:d.institute,
       Department:d.dept,
@@ -322,14 +317,14 @@ window.downloadExcel=()=>{
   // Summary statistics sheet
   const summaryData=events.map(event=>({
     Event:event,
-    'Total Registrations':allData.filter(d=>d.event===event).length,
-    'Unique Institutes':new Set(allData.filter(d=>d.event===event).map(d=>d.institute)).size
+    'Total Registrations':window.allData.filter(d=>d.event===event).length,
+    'Unique Institutes':new Set(window.allData.filter(d=>d.event===event).map(d=>d.institute)).size
   }));
   
   summaryData.push({
     Event:'TOTAL',
-    'Total Registrations':allData.length,
-    'Unique Institutes':new Set(allData.map(d=>d.institute)).size
+    'Total Registrations':window.allData.length,
+    'Unique Institutes':new Set(window.allData.map(d=>d.institute)).size
   });
   
   const summaryWs=XLSX.utils.json_to_sheet(summaryData);
@@ -380,7 +375,6 @@ window.downloadPDF=()=>{
     return;
   }
   
-  const allData = window.allData;
   const { jsPDF }=window.jspdf;
   const doc=new jsPDF('p','mm','a4');
   
@@ -431,9 +425,9 @@ window.downloadPDF=()=>{
   doc.setTextColor(0,0,0);
   doc.setFont('helvetica','normal');
   
-  const events=[...new Set(allData.map(d=>d.event))];
-  const totalRegs=allData.length;
-  const totalInstitutes=new Set(allData.map(d=>d.institute)).size;
+  const events=[...new Set(window.allData.map(d=>d.event))];
+  const totalRegs=window.allData.length;
+  const totalInstitutes=new Set(window.allData.map(d=>d.institute)).size;
   
   doc.text(`Total Registrations: ${totalRegs}`,20,yPos);
   yPos+=7;
@@ -449,7 +443,7 @@ window.downloadPDF=()=>{
   
   doc.setFont('helvetica','normal');
   events.forEach(event=>{
-    const count=allData.filter(d=>d.event===event).length;
+    const count=window.allData.filter(d=>d.event===event).length;
     doc.text(`• ${event}: ${count} registrations`,25,yPos);
     yPos+=6;
   });
@@ -458,7 +452,7 @@ window.downloadPDF=()=>{
   addNewPage();
   
   events.forEach((event,idx)=>{
-    const eventData=allData.filter(d=>d.event===event);
+    const eventData=window.allData.filter(d=>d.event===event);
     
     // Event Header
     doc.setFillColor(0,119,204);
