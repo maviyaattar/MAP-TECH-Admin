@@ -225,8 +225,33 @@ search.oninput=()=>render(allData.filter(d=>d.name.toLowerCase().includes(search
 // FILTER
 filter.onchange=()=>render(filter.value?allData.filter(d=>d.event===filter.value):allData);
 
+// Expose allData to window for download functions
+window.allData = allData;
+</script>
+
+<script>
+// Initialize window.allData if not set (in case Firebase module fails)
+if (typeof window.allData === 'undefined') {
+  window.allData = [];
+}
+
 // ENHANCED EXCEL with professional styling
 window.downloadExcel=()=>{
+  // Check if XLSX library is loaded
+  if (typeof XLSX === 'undefined') {
+    alert('Excel library is not loaded. Please check your internet connection and refresh the page.');
+    console.error('XLSX library not loaded');
+    return;
+  }
+  
+  // Check if we have data
+  if (!window.allData || window.allData.length === 0) {
+    alert('No data available to export. Please wait for data to load or refresh the page.');
+    console.error('No data available for export');
+    return;
+  }
+  
+  const allData = window.allData;
   const wb=XLSX.utils.book_new();
   
   // Main sheet with all data
@@ -341,6 +366,21 @@ window.downloadExcel=()=>{
 
 // ENHANCED PDF with professional styling
 window.downloadPDF=()=>{
+  // Check if jsPDF library is loaded
+  if (typeof window.jspdf === 'undefined') {
+    alert('PDF library is not loaded. Please check your internet connection and refresh the page.');
+    console.error('jsPDF library not loaded');
+    return;
+  }
+  
+  // Check if we have data
+  if (!window.allData || window.allData.length === 0) {
+    alert('No data available to export. Please wait for data to load or refresh the page.');
+    console.error('No data available for export');
+    return;
+  }
+  
+  const allData = window.allData;
   const { jsPDF }=window.jspdf;
   const doc=new jsPDF('p','mm','a4');
   
