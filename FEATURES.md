@@ -66,10 +66,19 @@ Each registration card now includes a delete button:
 4. If cancelled: No action is taken
 
 ### Security Considerations
-- Requires proper Firebase security rules to be configured
-- Only authenticated administrators should have delete permissions
+- **CRITICAL**: This implementation requires proper Firebase security rules to be configured
+- Only authenticated administrators should have delete permissions in Firebase
+- The current code does not include authentication UI - this must be added separately
 - Confirmation dialog prevents accidental deletions
 - Error handling ensures user is informed of any issues
+- **XSS Protection**: All user inputs are sanitized before being rendered in the DOM
+- Detailed error messages are logged to console but generic messages shown to users
+
+### Important Security Warning ⚠️
+**The application must be protected by Firebase authentication and security rules.** Without proper authentication, anyone with the URL can view and delete registrations. Ensure you:
+1. Set up Firebase Authentication
+2. Configure security rules to restrict access
+3. Only share the dashboard URL with authorized administrators
 
 ---
 

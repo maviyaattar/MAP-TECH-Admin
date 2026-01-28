@@ -153,21 +153,46 @@ let allData=[];
 function render(data){
   list.innerHTML="";
   data.forEach(d=>{
+    // Sanitize all user inputs to prevent XSS
+    const name = (d.name || '').replace(/[<>'"&]/g, c => ({'<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;','&':'&amp;'}[c]));
+    const event = (d.event || '').replace(/[<>'"&]/g, c => ({'<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;','&':'&amp;'}[c]));
+    const institute = (d.institute || '').replace(/[<>'"&]/g, c => ({'<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;','&':'&amp;'}[c]));
+    const dept = (d.dept || '').replace(/[<>'"&]/g, c => ({'<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;','&':'&amp;'}[c]));
+    const phone = (d.phone || '').replace(/[<>'"&]/g, c => ({'<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;','&':'&amp;'}[c]));
+    const email = (d.email || '').replace(/[<>'"&]/g, c => ({'<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;','&':'&amp;'}[c]));
+    const screenshot = (d.screenshot || '').replace(/['"]/g, c => ({'\'':'&#39;','"':'&quot;'}[c]));
+    
     list.innerHTML+=`
-      <div class="card">
-        <h3>${d.name}</h3>
-        <span class="badge">${d.event}</span>
-        <p><b>Institute:</b> ${d.institute}</p>
-        <p><b>Dept:</b> ${d.dept}</p>
-        <p><b>Phone:</b> ${d.phone}</p>
-        <p><b>Email:</b> ${d.email}</p>
+      <div class="card" data-id="${d.id}">
+        <h3>${name}</h3>
+        <span class="badge">${event}</span>
+        <p><b>Institute:</b> ${institute}</p>
+        <p><b>Dept:</b> ${dept}</p>
+        <p><b>Phone:</b> ${phone}</p>
+        <p><b>Email:</b> ${email}</p>
 
         <div class="card-buttons">
-          <button class="btn" onclick="viewImg('${d.screenshot}')">View Payment</button>
-          <button class="btn" style="background:#dc3545" onclick="deleteEntry('${d.id}','${d.name}')">Delete</button>
+          <button class="btn view-payment" data-screenshot="${screenshot}">View Payment</button>
+          <button class="btn delete-entry" style="background:#dc3545" data-id="${d.id}" data-name="${name}">Delete</button>
         </div>
       </div>
     `;
+  });
+  
+  // Add event listeners for delete buttons
+  document.querySelectorAll('.delete-entry').forEach(btn=>{
+    btn.addEventListener('click', function(){
+      const id=this.getAttribute('data-id');
+      const name=this.getAttribute('data-name');
+      deleteEntry(id,name);
+    });
+  });
+  
+  // Add event listeners for view payment buttons
+  document.querySelectorAll('.view-payment').forEach(btn=>{
+    btn.addEventListener('click', function(){
+      viewImg(this.getAttribute('data-screenshot'));
+    });
   });
 }
 
@@ -184,7 +209,8 @@ window.deleteEntry=async(id,name)=>{
       render(allData);
       alert("Registration deleted successfully!");
     }catch(err){
-      alert("Error deleting registration: "+err.message);
+      console.error("Delete error:",err);
+      alert("Failed to delete registration. Please try again.");
     }
   }
 };
