@@ -219,7 +219,7 @@ window.downloadExcel=()=>{
   });
   
   // Add filters
-  ws['!autofilter']={ref:"A1:F"+(mainData.length+1)};
+  ws['!autofilter']={ref:`A1:F${mainData.length+1}`};
   
   XLSX.utils.book_append_sheet(wb,ws,"All Registrations");
   
@@ -248,9 +248,9 @@ window.downloadExcel=()=>{
       }
     });
     
-    eventWs['!autofilter']={ref:"A1:E"+(eventData.length+1)};
+    eventWs['!autofilter']={ref:`A1:E${eventData.length+1}`};
     
-    const safeName=event.substring(0,31).replace(/[:\\\/\?\*\[\]]/g,'');
+    const safeName=event.substring(0,31).replace(/[:\\\/\?\*\[\]']/g,'');
     XLSX.utils.book_append_sheet(wb,eventWs,safeName);
   });
   
@@ -312,7 +312,6 @@ window.downloadPDF=()=>{
   const addNewPage=()=>{
     doc.addPage();
     yPos=20;
-    addFooter();
   };
   
   // Footer with page numbers
