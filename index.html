@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MAP-TECH 2K26 Admin</title>
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.20.3/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
 
 <style>
 body{margin:0;font-family:Segoe UI;background:#f4faff;color:#003366}
@@ -133,7 +133,7 @@ body{margin:0;font-family:Segoe UI;background:#f4faff;color:#003366}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
-import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAjDdnn_0_K0iQkSCLd5RcgMrP-DOjrzzU",
@@ -164,6 +164,7 @@ function render(data){
 
         <div class="card-buttons">
           <button class="btn" onclick="viewImg('${d.screenshot}')">View Payment</button>
+          <button class="btn" style="background:#dc3545" onclick="deleteEntry('${d.id}','${d.name}')">Delete</button>
         </div>
       </div>
     `;
@@ -175,8 +176,21 @@ window.viewImg=url=>{
   modal.style.display="flex";
 };
 
+window.deleteEntry=async(id,name)=>{
+  if(confirm(`Are you sure you want to delete registration for ${name}?`)){
+    try{
+      await deleteDoc(doc(db,"registrations",id));
+      allData=allData.filter(d=>d.id!==id);
+      render(allData);
+      alert("Registration deleted successfully!");
+    }catch(err){
+      alert("Error deleting registration: "+err.message);
+    }
+  }
+};
+
 const snap=await getDocs(collection(db,"registrations"));
-snap.forEach(doc=>allData.push(doc.data()));
+snap.forEach(doc=>allData.push({id:doc.id,...doc.data()}));
 render(allData);
 
 // SEARCH
