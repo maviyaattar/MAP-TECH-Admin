@@ -32,6 +32,9 @@ body{margin:0;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;backgrou
   position:absolute;top:10px;right:15px;
   font-size:11px;opacity:0.85;font-style:italic;
 }
+@media(max-width:600px){
+  .branding{font-size:9px;top:8px;right:10px}
+}
 
 /* SEARCH */
 .controls{
@@ -237,7 +240,7 @@ Download started...
 </div>
 
 <div class="controls">
-  <input type="text" id="search" placeholder="Search name...">
+  <input type="text" id="search" placeholder="Search by name...">
   <select id="filter">
     <option value="">All Events</option>
     <option>Paper Presentation</option>
@@ -265,8 +268,6 @@ Download started...
   <div class="footer-tagline">Building Excellence in Event Management Solutions</div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
 import { getFirestore, collection, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
@@ -277,6 +278,14 @@ function showAlert(msg){
   box.innerText = msg;
   box.style.display = "block";
   setTimeout(()=> box.style.display="none", 2500);
+}
+
+// XSS Protection: Sanitize user input
+function sanitize(str){
+  if(!str) return '';
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
 }
 
 /* ------------------ FIREBASE ------------------ */
@@ -299,18 +308,28 @@ let allData = [];
 function render(data){
   list.innerHTML = "";
   data.forEach(d=>{
+    // Sanitize all user inputs to prevent XSS
+    const name = sanitize(d.name);
+    const event = sanitize(d.event);
+    const institute = sanitize(d.institute);
+    const dept = sanitize(d.dept);
+    const phone = sanitize(d.phone);
+    const email = sanitize(d.email);
+    const screenshot = sanitize(d.screenshot);
+    const id = sanitize(d.id);
+    
     list.innerHTML += `
       <div class="card">
-        <h3>${d.name || ''}</h3>
-        <span class="badge">${d.event || ''}</span>
-        <p><b>Institute:</b> ${d.institute || ''}</p>
-        <p><b>Dept:</b> ${d.dept || ''}</p>
-        <p><b>Phone:</b> ${d.phone || ''}</p>
-        <p><b>Email:</b> ${d.email || ''}</p>
+        <h3>${name}</h3>
+        <span class="badge">${event}</span>
+        <p><b>Institute:</b> ${institute}</p>
+        <p><b>Dept:</b> ${dept}</p>
+        <p><b>Phone:</b> ${phone}</p>
+        <p><b>Email:</b> ${email}</p>
 
         <div class="card-buttons">
-          <button class="btn" onclick="viewImg('${d.screenshot}')">View Payment</button>
-          <button class="btn" style="background:#dc3545" onclick="deleteEntry('${d.id}','${d.name}')">Delete</button>
+          <button class="btn" onclick="viewImg('${screenshot}')">View Payment</button>
+          <button class="btn" style="background:#dc3545" onclick="deleteEntry('${id}','${name}')">Delete</button>
         </div>
       </div>
     `;
