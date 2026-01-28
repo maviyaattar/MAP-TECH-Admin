@@ -10,95 +10,213 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
 
 <style>
-body{margin:0;font-family:Segoe UI;background:#f4faff;color:#003366}
+body{margin:0;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#1a1a2e;min-height:100vh}
 
 /* HEADER */
 .header{
-  background:#0077cc;color:white;text-align:center;
-  padding:15px;font-weight:bold;font-size:18px;
+  background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+  color:white;text-align:center;
+  padding:25px 15px;font-weight:bold;font-size:28px;
+  box-shadow:0 4px 20px rgba(0,0,0,0.15);
+  position:relative;
+  overflow:hidden;
+}
+.header::before{
+  content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent);
+  animation:shine 3s infinite;
+}
+@keyframes shine{0%,100%{left:-100%}50%{left:100%}}
+.header-subtitle{font-size:14px;font-weight:normal;opacity:0.9;margin-top:5px}
+.branding{
+  position:absolute;top:10px;right:15px;
+  font-size:11px;opacity:0.85;font-style:italic;
 }
 
 /* SEARCH */
 .controls{
-  display:flex;gap:10px;padding:10px;
-  flex-wrap:wrap;
+  display:flex;gap:15px;padding:20px;
+  flex-wrap:wrap;max-width:1400px;margin:0 auto;
+  background:rgba(255,255,255,0.95);
+  backdrop-filter:blur(10px);
+  border-radius:15px;
+  box-shadow:0 8px 32px rgba(0,0,0,0.1);
+  margin-top:20px;
 }
 .controls input,.controls select{
-  flex:1;padding:10px;border-radius:8px;border:1px solid #ccc;
+  flex:1;padding:14px 18px;border-radius:12px;
+  border:2px solid #e0e0e0;
+  font-size:15px;
+  transition:all 0.3s ease;
+  background:white;
+  min-width:200px;
 }
+.controls input:focus,.controls select:focus{
+  outline:none;border-color:#667eea;
+  box-shadow:0 0 0 3px rgba(102,126,234,0.1);
+  transform:translateY(-2px);
+}
+.controls input::placeholder{color:#999}
 
 /* SKELETON */
 .skeleton{
-  height:120px;
-  background:linear-gradient(90deg,#eee,#ddd,#eee);
-  border-radius:10px;
-  animation:shimmer 1.2s infinite;
-  margin-bottom:10px;
+  height:160px;
+  background:linear-gradient(90deg,#f0f0f0,#e0e0e0,#f0f0f0);
+  background-size:200% 100%;
+  border-radius:20px;
+  animation:shimmer 1.5s infinite;
+  margin-bottom:15px;
+  box-shadow:0 4px 15px rgba(0,0,0,0.05);
 }
-@keyframes shimmer{0%{background-position:-200px}100%{background-position:200px}}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 
 /* CARDS */
-.container{padding:10px}
+.container{padding:20px;max-width:1400px;margin:0 auto}
 .card{
-  background:white;border-radius:12px;
-  padding:12px;margin-bottom:12px;
-  box-shadow:0 6px 15px rgba(0,0,0,0.08);
-  animation:fadeUp .5s ease;
+  background:linear-gradient(135deg,#ffffff 0%,#f8f9ff 100%);
+  border-radius:20px;
+  padding:24px;margin-bottom:20px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.08);
+  border:1px solid rgba(102,126,234,0.1);
+  animation:fadeUp .6s ease;
+  transition:all 0.3s ease;
+  position:relative;
+  overflow:hidden;
 }
-@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1}}
+.card::before{
+  content:'';position:absolute;top:0;left:0;right:0;
+  height:4px;background:linear-gradient(90deg,#667eea,#764ba2);
+}
+.card:hover{
+  transform:translateY(-5px);
+  box-shadow:0 15px 40px rgba(0,0,0,0.12);
+}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
 
-.card h3{margin:0}
+.card h3{margin:0 0 10px 0;font-size:20px;color:#1a1a2e;font-weight:600}
 .badge{
-  background:#0077cc;color:white;
-  padding:3px 8px;border-radius:12px;font-size:12px
+  background:linear-gradient(135deg,#667eea,#764ba2);
+  color:white;
+  padding:6px 14px;border-radius:20px;font-size:13px;
+  font-weight:500;
+  display:inline-block;
+  margin-bottom:12px;
+  box-shadow:0 2px 8px rgba(102,126,234,0.3);
 }
-.card p{margin:3px 0;font-size:14px}
+.card p{margin:8px 0;font-size:15px;color:#555;line-height:1.6}
+.card p b{color:#333;font-weight:600}
 
 .card-buttons{
-  display:flex;gap:8px;margin-top:8px
+  display:flex;gap:12px;margin-top:16px;
+  padding-top:16px;border-top:1px solid rgba(0,0,0,0.06);
 }
 .btn{
-  flex:1;padding:6px;border:none;border-radius:6px;
-  background:#0077cc;color:white;cursor:pointer
+  flex:1;padding:12px 20px;border:none;border-radius:12px;
+  background:linear-gradient(135deg,#667eea,#764ba2);
+  color:white;cursor:pointer;font-size:14px;font-weight:600;
+  transition:all 0.3s ease;
+  box-shadow:0 4px 12px rgba(102,126,234,0.3);
+  position:relative;overflow:hidden;
 }
+.btn::before{
+  content:'';position:absolute;top:50%;left:50%;
+  width:0;height:0;border-radius:50%;
+  background:rgba(255,255,255,0.3);
+  transform:translate(-50%,-50%);
+  transition:width 0.6s,height 0.6s;
+}
+.btn:hover::before{width:300px;height:300px}
+.btn:hover{
+  transform:translateY(-3px);
+  box-shadow:0 6px 20px rgba(102,126,234,0.4);
+}
+.btn:active{transform:translateY(-1px)}
 
 /* DOWNLOAD */
 .download{
-  text-align:center;padding:20px;
-  display:flex;gap:15px;justify-content:center;
-  flex-wrap:wrap;
+  text-align:center;padding:30px 20px;
+  display:flex;gap:20px;justify-content:center;
+  flex-wrap:wrap;max-width:1400px;margin:20px auto;
+  background:rgba(255,255,255,0.95);
+  backdrop-filter:blur(10px);
+  border-radius:20px;
+  box-shadow:0 8px 32px rgba(0,0,0,0.1);
 }
 .download button{
-  margin:5px;padding:12px 24px;border:none;
-  border-radius:8px;background:#0077cc;color:white;
-  font-size:15px;font-weight:600;cursor:pointer;
-  box-shadow:0 4px 10px rgba(0,119,204,0.3);
+  margin:5px;padding:16px 32px;border:none;
+  border-radius:15px;
+  background:linear-gradient(135deg,#667eea,#764ba2);
+  color:white;
+  font-size:16px;font-weight:700;cursor:pointer;
+  box-shadow:0 6px 20px rgba(102,126,234,0.4);
   transition:all 0.3s ease;
-  display:flex;align-items:center;gap:8px;
+  display:flex;align-items:center;gap:10px;
+  position:relative;overflow:hidden;
+  min-width:220px;
 }
+.download button::before{
+  content:'';position:absolute;top:0;left:-100%;
+  width:100%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.3),transparent);
+  transition:left 0.5s;
+}
+.download button:hover::before{left:100%}
 .download button:hover{
-  background:#005fa3;
-  transform:translateY(-2px);
-  box-shadow:0 6px 15px rgba(0,119,204,0.4);
+  transform:translateY(-4px) scale(1.02);
+  box-shadow:0 8px 30px rgba(102,126,234,0.5);
 }
 .download button:active{
-  transform:translateY(0);
+  transform:translateY(-2px) scale(0.98);
 }
 .download button i{
-  font-size:18px;
+  font-size:20px;
 }
 
 /* MODAL */
 .modal{
   display:none;position:fixed;inset:0;
-  background:rgba(0,0,0,0.6);
+  background:rgba(0,0,0,0.8);
+  backdrop-filter:blur(5px);
   justify-content:center;align-items:center;
+  z-index:10000;
+  animation:fadeIn 0.3s ease;
 }
-.modal img{max-width:90%;border-radius:10px}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal img{
+  max-width:90%;max-height:90%;
+  border-radius:15px;
+  box-shadow:0 20px 60px rgba(0,0,0,0.5);
+  animation:zoomIn 0.3s ease;
+}
+@keyframes zoomIn{from{transform:scale(0.8)}to{transform:scale(1)}}
+
+/* FOOTER */
+.footer{
+  background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+  color:white;text-align:center;
+  padding:20px;margin-top:40px;
+  box-shadow:0 -4px 20px rgba(0,0,0,0.1);
+}
+.footer-branding{font-size:18px;font-weight:600;margin-bottom:8px}
+.footer-tagline{font-size:13px;opacity:0.9}
 
 /* MOBILE */
-@media(max-width:600px){
-  .card-buttons{flex-direction:column}
+@media(max-width:768px){
+  .header{font-size:22px;padding:20px 15px}
+  .header-subtitle{font-size:12px}
+  .controls{padding:15px;margin-top:15px;gap:10px}
+  .controls input,.controls select{min-width:100%;font-size:14px;padding:12px}
+  .container{padding:15px}
+  .card{padding:18px;margin-bottom:15px}
+  .card h3{font-size:18px}
+  .card-buttons{flex-direction:column;gap:10px}
+  .btn{padding:14px}
+  .download{padding:20px 15px;gap:15px}
+  .download button{min-width:100%;padding:14px 24px}
+}
+@media(max-width:480px){
+  .header{font-size:20px}
+  .branding{font-size:10px;top:8px;right:10px}
 }
 </style>
 </head>
@@ -106,12 +224,17 @@ body{margin:0;font-family:Segoe UI;background:#f4faff;color:#003366}
 <body>
     <div id="alertBox" style="
 position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
-background:#0077cc;color:white;padding:12px 20px;border-radius:8px;
-box-shadow:0 6px 15px rgba(0,0,0,0.2);display:none;z-index:9999;">
+background:linear-gradient(135deg,#667eea,#764ba2);color:white;padding:14px 24px;border-radius:12px;
+box-shadow:0 8px 25px rgba(102,126,234,0.4);display:none;z-index:9999;
+font-weight:600;font-size:15px;">
 Download started...
 </div>
 
-<div class="header">MAP-TECH 2K26 Admin Dashboard</div>
+<div class="header">
+  <span class="branding">Developed by Maviya Attar</span>
+  MAP-TECH 2K26 Admin Dashboard
+  <div class="header-subtitle">Professional Registration Management System</div>
+</div>
 
 <div class="controls">
   <input type="text" id="search" placeholder="Search name...">
@@ -136,6 +259,12 @@ Download started...
 <div class="modal" id="modal" onclick="this.style.display='none'">
   <img id="modalImg">
 </div>
+
+<div class="footer">
+  <div class="footer-branding">⚡ Developed by Maviya Attar ⚡</div>
+  <div class="footer-tagline">Building Excellence in Event Management Solutions</div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script type="module">
@@ -225,43 +354,100 @@ window.downloadExcel = function () {
   try {
     const wb = XLSX.utils.book_new();
 
-    // Sheet 1 – Full Data
-    const main = XLSX.utils.json_to_sheet(allData.map(d => ({
+    // Add branding to workbook properties
+    wb.Props = {
+      Title: "MAP-TECH 2K26 Professional Report",
+      Subject: "Event Registrations",
+      Author: "Maviya Attar",
+      Company: "MAP-TECH",
+      CreatedDate: new Date()
+    };
+
+    // Sheet 1 – Full Data with Enhanced Styling
+    const mainData = allData.map(d => ({
       Name: d.name || '',
       Institute: d.institute || '',
       Department: d.dept || '',
       Phone: d.phone || '',
       Email: d.email || '',
       Event: d.event || ''
-    })));
+    }));
+
+    const main = XLSX.utils.json_to_sheet(mainData);
+    
+    // Set column widths
+    main['!cols'] = [
+      {wch: 25}, // Name
+      {wch: 35}, // Institute
+      {wch: 25}, // Department
+      {wch: 15}, // Phone
+      {wch: 30}, // Email
+      {wch: 25}  // Event
+    ];
+
     XLSX.utils.book_append_sheet(wb, main, "All Registrations");
 
-    // Event Sheets (FIXED NAME)
+    // Event Sheets with improved names
     const events = [...new Set(allData.map(d => d.event))];
     events.forEach(ev => {
       const cleanName = (ev || "Event")
-        .replace(/[:\\\/\?\*\[\]]/g, "")  // remove invalid chars
+        .replace(/[:\\\/\?\*\[\]]/g, "")
         .substring(0, 31);
 
-      const ws = XLSX.utils.json_to_sheet(
-        allData.filter(d => d.event === ev).map(d => ({
-          Name: d.name || '',
-          Phone: d.phone || '',
-          Email: d.email || '',
-          Institute: d.institute || ''
-        }))
-      );
+      const eventData = allData.filter(d => d.event === ev).map(d => ({
+        Name: d.name || '',
+        Phone: d.phone || '',
+        Email: d.email || '',
+        Institute: d.institute || '',
+        Department: d.dept || ''
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(eventData);
+      
+      ws['!cols'] = [
+        {wch: 25}, // Name
+        {wch: 15}, // Phone
+        {wch: 30}, // Email
+        {wch: 35}, // Institute
+        {wch: 25}  // Department
+      ];
 
       XLSX.utils.book_append_sheet(wb, ws, cleanName);
     });
 
-    // Summary Sheet
-    const summary = XLSX.utils.json_to_sheet(events.map(ev => ({
-      Event: ev,
-      Registrations: allData.filter(d => d.event === ev).length
-    })));
+    // Enhanced Summary Sheet with Branding
+    const summaryData = [
+      {Info: "Report Title", Value: "MAP-TECH 2K26 Professional Report"},
+      {Info: "Generated By", Value: "Maviya Attar"},
+      {Info: "Date", Value: new Date().toLocaleDateString()},
+      {Info: "Total Registrations", Value: allData.length},
+      {Info: "Total Events", Value: events.length},
+      {Info: "", Value: ""},
+      {Info: "Event Breakdown", Value: "Registrations"}
+    ];
+
+    events.forEach(ev => {
+      summaryData.push({
+        Info: ev,
+        Value: allData.filter(d => d.event === ev).length
+      });
+    });
+
+    // Add unique institutes count
+    const uniqueInstitutes = [...new Set(allData.map(d => d.institute))].length;
+    summaryData.push({Info: "", Value: ""});
+    summaryData.push({Info: "Unique Institutes", Value: uniqueInstitutes});
+
+    const summary = XLSX.utils.json_to_sheet(summaryData);
+    
+    summary['!cols'] = [
+      {wch: 30}, // Info
+      {wch: 25}  // Value
+    ];
+
     XLSX.utils.book_append_sheet(wb, summary, "Summary");
 
+    // Generate and download
     XLSX.writeFile(wb, "MAP-TECH-2K26-Professional-Report.xlsx");
 
     if (typeof showAlert === "function") {
@@ -287,38 +473,52 @@ window.downloadPDF = function () {
   const pageHeight = doc.internal.pageSize.getHeight();
   let y = 20;
 
-  // Cover Header
-  doc.setFillColor(0,119,204);
-  doc.rect(0,0,pageWidth,40,"F");
+  // Cover Header with Gradient Effect
+  doc.setFillColor(102,126,234);
+  doc.rect(0,0,pageWidth,50,"F");
 
   doc.setTextColor(255,255,255);
-  doc.setFontSize(24);
+  doc.setFontSize(28);
   doc.setFont("helvetica","bold");
-  doc.text("MAP-TECH 2K26", pageWidth/2, 18, {align:"center"});
+  doc.text("MAP-TECH 2K26", pageWidth/2, 22, {align:"center"});
 
-  doc.setFontSize(14);
+  doc.setFontSize(16);
   doc.setFont("helvetica","normal");
-  doc.text("State Level Technical Event Report", pageWidth/2, 28, {align:"center"});
+  doc.text("State Level Technical Event Report", pageWidth/2, 32, {align:"center"});
 
-  y = 55;
+  // Developer Branding
+  doc.setFontSize(10);
+  doc.setFont("helvetica","italic");
+  doc.text("Developed by Maviya Attar", pageWidth/2, 42, {align:"center"});
+
+  y = 65;
   doc.setTextColor(0,0,0);
 
-  // Summary
-  doc.setFontSize(14);
+  // Summary Section
+  doc.setFillColor(248,249,255);
+  doc.rect(10,y-5,pageWidth-20,8,"F");
+  doc.setFontSize(16);
   doc.setFont("helvetica","bold");
-  doc.text("Summary", 15, y);
-  y += 10;
+  doc.setTextColor(102,126,234);
+  doc.text("📊 Summary", 15, y);
+  y += 12;
 
   const events = [...new Set(allData.map(d=>d.event))];
-  doc.setFontSize(11);
+  doc.setFontSize(12);
   doc.setFont("helvetica","normal");
+  doc.setTextColor(0,0,0);
   doc.text(`Total Registrations: ${allData.length}`, 20, y);
-  y += 7;
+  y += 8;
+  doc.text(`Total Events: ${events.length}`, 20, y);
+  y += 10;
 
+  doc.setFontSize(11);
   events.forEach(ev=>{
     const count = allData.filter(d=>d.event===ev).length;
-    doc.text(`${ev}: ${count}`, 20, y);
-    y += 7;
+    doc.setFillColor(240,242,255);
+    doc.rect(18,y-4,pageWidth-36,7,"F");
+    doc.text(`• ${ev}: ${count} registrations`, 22, y);
+    y += 9;
   });
 
   // Details Pages
@@ -326,63 +526,90 @@ window.downloadPDF = function () {
   y = 20;
 
   events.forEach(event=>{
-    if (y > pageHeight - 30) { doc.addPage(); y = 20; }
+    if (y > pageHeight - 35) { doc.addPage(); y = 20; }
 
-    doc.setFillColor(0,119,204);
-    doc.rect(10,y-6,pageWidth-20,10,"F");
+    // Event Header with Gradient
+    doc.setFillColor(102,126,234);
+    doc.rect(10,y-7,pageWidth-20,12,"F");
 
     doc.setTextColor(255,255,255);
-    doc.setFontSize(12);
+    doc.setFontSize(14);
     doc.setFont("helvetica","bold");
     doc.text(event, 15, y);
 
-    y += 12;
+    y += 14;
     doc.setTextColor(0,0,0);
 
     const eventData = allData.filter(d=>d.event===event);
 
     eventData.forEach(d=>{
-      if (y > pageHeight - 30) { doc.addPage(); y = 20; }
+      if (y > pageHeight - 35) { doc.addPage(); y = 20; }
 
-      doc.setFillColor(240,247,255);
-      doc.rect(12,y-5,pageWidth-24,24,"F");
+      // Enhanced Card Design
+      doc.setDrawColor(102,126,234);
+      doc.setLineWidth(0.5);
+      doc.setFillColor(248,249,255);
+      doc.roundedRect(12,y-6,pageWidth-24,28,2,2,"FD");
 
-      doc.setFontSize(11);
+      doc.setFontSize(12);
       doc.setFont("helvetica","bold");
+      doc.setTextColor(26,26,46);
       doc.text(d.name, 18, y);
 
       doc.setFont("helvetica","normal");
       doc.setFontSize(10);
-      doc.text(`Institute: ${d.institute}`, 18, y+6);
-      doc.text(`Dept: ${d.dept}`, 18, y+11);
-      doc.text(`Phone: ${d.phone}`, 18, y+16);
+      doc.setTextColor(85,85,85);
+      doc.text(`🏢 Institute: ${d.institute}`, 18, y+6);
+      doc.text(`📚 Dept: ${d.dept}`, 18, y+11);
+      doc.text(`📱 Phone: ${d.phone}`, 18, y+16);
+      doc.text(`📧 Email: ${d.email}`, 18, y+21);
 
-      y += 28;
+      y += 32;
     });
 
-    y += 5;
+    y += 8;
   });
 
-  // Table Page
+  // Complete List Page
   doc.addPage();
-  doc.setFontSize(16);
-  doc.setTextColor(0,119,204);
-  doc.text("Complete Participant List", 15, 20);
+  doc.setFillColor(102,126,234);
+  doc.rect(0,0,pageWidth,20,"F");
+  doc.setFontSize(18);
+  doc.setTextColor(255,255,255);
+  doc.text("Complete Participant List", pageWidth/2, 13, {align:"center"});
 
   doc.setFontSize(10);
+  doc.setTextColor(0,0,0);
   let startY = 30;
 
   allData.forEach((d,i)=>{
-    if(startY > pageHeight-15){
+    if(startY > pageHeight-20){
       doc.addPage();
       startY = 20;
     }
 
+    if(i % 2 === 0){
+      doc.setFillColor(248,249,255);
+      doc.rect(10,startY-4,pageWidth-20,7,"F");
+    }
+
+    doc.setFont("helvetica","normal");
     doc.text(`${i+1}. ${d.name}`,15,startY);
-    doc.text(d.event,70,startY);
-    doc.text(d.phone,120,startY);
+    doc.text(d.event || '',75,startY);
+    doc.text(d.phone || '',130,startY);
     startY += 7;
   });
+
+  // Footer on all pages
+  const totalPages = doc.internal.pages.length - 1;
+  for(let i = 1; i <= totalPages; i++){
+    doc.setPage(i);
+    doc.setFontSize(9);
+    doc.setTextColor(102,126,234);
+    doc.setFont("helvetica","italic");
+    doc.text("Developed by Maviya Attar", 15, pageHeight-8);
+    doc.text(`Page ${i} of ${totalPages}`, pageWidth-40, pageHeight-8);
+  }
 
   doc.save("MAP-TECH-2K26-Professional-Report.pdf");
 
