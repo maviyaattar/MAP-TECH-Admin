@@ -3,310 +3,137 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MAP-TECH 2K26 Admin</title>
-
+<title>MAP-TECH Admin</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
-/* SAME CSS AS YOURS — NO CHANGE */
 body{margin:0;font-family:'Segoe UI',sans-serif;background:#f2f6fb;color:#1a2b3c}
 .header{background:#0d6efd;color:white;text-align:center;padding:18px;font-weight:600;font-size:20px}
 .controls{display:flex;gap:12px;padding:12px;flex-wrap:wrap}
 .controls input,.controls select{flex:1;padding:12px;border-radius:10px;border:1px solid #d0d7e2;background:white}
 .container{padding:12px}
 .card{background:white;border-radius:14px;padding:14px;margin-bottom:14px;box-shadow:0 6px 18px rgba(0,0,0,0.05)}
-.badge{background:#0d6efd;color:white;padding:4px 10px;border-radius:12px;font-size:12px}
-.card-buttons{display:flex;gap:8px;margin-top:10px}
-.btn{flex:1;padding:8px;border:none;border-radius:8px;background:#dc3545;color:white;font-weight:600;cursor:pointer}
-.download{text-align:center;padding:22px;display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
-.download button{padding:12px 26px;border:none;border-radius:10px;background:#0d6efd;color:white;font-weight:600;cursor:pointer}
-#alertBox{position:fixed;top:20px;left:50%;transform:translateX(-50%);padding:14px 20px;border-radius:14px;background:white;color:#0d6efd;font-weight:600;box-shadow:0 10px 25px rgba(0,0,0,0.12);opacity:0;transition:.4s}
-#alertBox.show{opacity:1}
+.badge{padding:4px 10px;border-radius:12px;font-size:12px;color:white}
+.pending{background:#ffc107}
+.verified{background:#28a745}
+.rejected{background:#dc3545}
+.card-buttons{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.btn{flex:1;padding:8px;border:none;border-radius:8px;font-weight:600;cursor:pointer}
+.view{background:#0d6efd;color:white}
+.verify{background:#28a745;color:white}
+.reject{background:#dc3545;color:white}
+.pendingBtn{background:#ffc107;color:black}
+.whatsapp{background:#25D366;color:white}
+.download{padding:20px;text-align:center}
+.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);justify-content:center;align-items:center}
+.modal img{max-width:90%;max-height:90%;border-radius:10px}
 </style>
 </head>
-
 <body>
 
-<div id="alertBox">Download started...</div>
 <div class="header">MAP-TECH 2K26 Admin Dashboard</div>
 
 <div class="controls">
   <input type="text" id="search" placeholder="Search name...">
-  <select id="filter">
+  <select id="filterEvent">
     <option value="">All Events</option>
     <option>Paper Presentation</option>
     <option>Poster Presentation</option>
     <option>Technical Quiz</option>
+  </select>
+  <select id="downloadFilter">
+    <option value="all">Download All</option>
+    <option value="pending">Pending Only</option>
+    <option value="verified">Verified Only</option>
+    <option value="rejected">Rejected Only</option>
   </select>
 </div>
 
 <div class="container" id="list"></div>
 
 <div class="download">
-  <button onclick="downloadExcel()"><i class="fas fa-file-excel"></i> Download Excel</button>
-  <button onclick="downloadPDF()"><i class="fas fa-file-pdf"></i> Download PDF</button>
+  <button onclick="downloadExcel()">Excel</button>
+  <button onclick="downloadPDF()">PDF</button>
+</div>
+
+<div class="modal" id="imgModal" onclick="this.style.display='none'">
+  <img id="modalImg">
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
-import { getFirestore, collection, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot, updateDoc, doc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
-function showAlert(msg){
-  const box=document.getElementById("alertBox");
-  box.innerHTML=msg;
-  box.classList.add("show");
-  setTimeout(()=>box.classList.remove("show"),2500);
-}
-
-const firebaseConfig={
-  apiKey:"AIzaSyAjDdnn_0_K0iQkSCLd5RcgMrP-DOjrzzU",
-  authDomain:"map-tech2k26.firebaseapp.com",
-  projectId:"map-tech2k26"
-};
-
+const firebaseConfig={apiKey:"AIzaSyAjDdnn_0_K0iQkSCLd5RcgMrP-DOjrzzU",authDomain:"map-tech2k26.firebaseapp.com",projectId:"map-tech2k26"};
 const app=initializeApp(firebaseConfig);
 const db=getFirestore(app);
-const list=document.getElementById("list");
 let allData=[];
+const list=document.getElementById("list");
 
-/* ---------- RENDER ---------- */
+/* LIVE */
+onSnapshot(collection(db,"registrations"),snap=>{
+  allData=[];
+  snap.forEach(d=>allData.push({id:d.id,...d.data()}));
+  applyFilters();
+});
+
+/* IMAGE MODAL */
+window.showImg=(url)=>{
+  modalImg.src=url;
+  imgModal.style.display="flex";
+};
+
+/* STATUS CHANGE */
+window.setStatus=async(id,status)=>{
+  await updateDoc(doc(db,"registrations",id),{paymentStatus:status});
+};
+
+/* RENDER */
 function render(data){
   list.innerHTML="";
   data.forEach(d=>{
     list.innerHTML+=`
     <div class="card">
       <h3>${d.name}</h3>
-      <span class="badge">${d.event}</span>
-      <p><b>Institute:</b> ${d.institute}</p>
-      <p><b>Dept:</b> ${d.dept}</p>
+      <span class="badge ${d.paymentStatus||'pending'}">${d.paymentStatus||'pending'}</span>
       <p><b>Phone:</b> ${d.phone}</p>
-      <p><b>Email:</b> ${d.email}</p>
-      <p><b>Payment ID:</b> ${d.paymentId || 'N/A'}</p>
-      <p><b>Amount:</b> ₹${d.paymentAmount || 0}</p>
-      <p><b>Status:</b> ${d.paymentStatus || 'pending'}</p>
+      <p><b>Event:</b> ${d.event}</p>
 
       <div class="card-buttons">
-        <button class="btn" onclick="deleteEntry('${d.id}','${d.name}')">Delete</button>
+        <button class="btn view" onclick="showImg('${d.paymentProofUrl}')">Proof</button>
+        <button class="btn verify" onclick="setStatus('${d.id}','verified')">Verify</button>
+        <button class="btn pendingBtn" onclick="setStatus('${d.id}','pending')">Pending</button>
+        <button class="btn reject" onclick="setStatus('${d.id}','rejected')">Reject</button>
+        ${d.paymentStatus==='verified'?`<button class="btn whatsapp" onclick="sendWA('${d.phone}','${d.name}')">WhatsApp</button>`:''}
       </div>
     </div>`;
   });
 }
 
-/* ---------- DELETE ---------- */
-window.deleteEntry=async(id,name)=>{
-  if(confirm("Delete "+name+"?")){
-    await deleteDoc(doc(db,"registrations",id));
-    allData=allData.filter(d=>d.id!==id);
-    render(allData);
-  }
+/* SEARCH + FILTER */
+search.oninput=applyFilters;
+filterEvent.onchange=applyFilters;
+
+function applyFilters(){
+  let data=allData.filter(d=>d.name.toLowerCase().includes(search.value.toLowerCase()));
+  if(filterEvent.value) data=data.filter(d=>d.event===filterEvent.value);
+  render(data);
+}
+
+/* WHATSAPP */
+window.sendWA=(phone,name)=>{
+  window.open(`https://wa.me/91${phone}?text=Hello ${name}, your MAP-TECH registration is verified.`, "_blank");
 };
 
-/* ---------- FETCH ---------- */
-const snap=await getDocs(collection(db,"registrations"));
-snap.forEach(doc=>allData.push({id:doc.id,...doc.data()}));
-render(allData);
-
-/* SEARCH */
-search.oninput=()=>render(allData.filter(d=>d.name.toLowerCase().includes(search.value.toLowerCase())));
-
-/* FILTER */
-filter.onchange=()=>render(filter.value?allData.filter(d=>d.event===filter.value):allData);
-
-/* ---------- EXCEL ---------- */
-/* ------------------ EXCEL EXPORT ------------------ */
-window.downloadExcel = function () {
-  if (!allData || !allData.length) return alert("No data");
-
-  try {
-    const wb = XLSX.utils.book_new();
-
-    // Sheet 1 – Full Data
-    const main = XLSX.utils.json_to_sheet(allData.map(d => ({
-      Name: d.name || '',
-      Institute: d.institute || '',
-      Department: d.dept || '',
-      Phone: d.phone || '',
-      Email: d.email || '',
-      Event: d.event || '',
-      PaymentID: d.paymentId || '',
-      Amount: d.paymentAmount || '',
-      Status: d.paymentStatus || ''
-    })));
-    XLSX.utils.book_append_sheet(wb, main, "All Registrations");
-
-    // Event Sheets
-    const events = [...new Set(allData.map(d => d.event))];
-    events.forEach(ev => {
-      const cleanName = (ev || "Event")
-        .replace(/[:\\\/\?\*\[\]]/g, "")
-        .substring(0, 31);
-
-      const ws = XLSX.utils.json_to_sheet(
-        allData.filter(d => d.event === ev).map(d => ({
-          Name: d.name || '',
-          Phone: d.phone || '',
-          Email: d.email || '',
-          Institute: d.institute || '',
-          PaymentID: d.paymentId || '',
-          Amount: d.paymentAmount || ''
-        }))
-      );
-
-      XLSX.utils.book_append_sheet(wb, ws, cleanName);
-    });
-
-    // Summary Sheet
-    const summary = XLSX.utils.json_to_sheet(events.map(ev => ({
-      Event: ev,
-      Registrations: allData.filter(d => d.event === ev).length,
-      Amount: allData.filter(d => d.event === ev).reduce((a,b)=>a+(b.paymentAmount||0),0)
-    })));
-    XLSX.utils.book_append_sheet(wb, summary, "Summary");
-
-    XLSX.writeFile(wb, "MAP-TECH-2K26-Professional-Report.xlsx");
-
-    if (typeof showAlert === "function") {
-      showAlert("Excel download started 📊");
-    }
-
-  } catch (err) {
-    console.error("Excel Export Error:", err);
-    alert("Excel download failed.");
-  }
-};
-/* ------------------ PDF EXPORT ------------------ */
-let downloadingPDF = false;
-window.downloadPDF = function () {
-  if (downloadingPDF) return;
-  if (!allData.length) return alert("No data");
-
-  downloadingPDF = true;
-
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF('p','mm','a4');
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
-  let y = 20;
-
-  // COVER
-  doc.setFillColor(0,119,204);
-  doc.rect(0,0,pageWidth,40,"F");
-  doc.setTextColor(255,255,255);
-  doc.setFontSize(24);
-  doc.setFont("helvetica","bold");
-  doc.text("MAP-TECH 2K26", pageWidth/2, 18, {align:"center"});
-  doc.setFontSize(14);
-  doc.setFont("helvetica","normal");
-  doc.text("State Level Technical Event Report", pageWidth/2, 28, {align:"center"});
-
-  y = 55;
-  doc.setTextColor(0,0,0);
-
-  // SUMMARY
-  doc.setFontSize(14);
-  doc.setFont("helvetica","bold");
-  doc.text("Summary", 15, y);
-  y += 10;
-
-  const events = [...new Set(allData.map(d=>d.event))];
-  doc.setFontSize(11);
-  doc.setFont("helvetica","normal");
-  doc.text(`Total Registrations: ${allData.length}`, 20, y);
-  y += 7;
-
-  const totalAmt = allData.reduce((a,b)=>a+(b.paymentAmount||0),0);
-  doc.text(`Total Amount Collected: ₹${totalAmt}`, 20, y);
-  y += 10;
-
-  events.forEach(ev=>{
-    const count = allData.filter(d=>d.event===ev).length;
-    doc.text(`${ev}: ${count}`, 20, y);
-    y += 7;
-  });
-
-  // DETAILS PAGE
-  doc.addPage();
-  y = 20;
-
-  events.forEach(event=>{
-    if (y > pageHeight - 30) { doc.addPage(); y = 20; }
-
-    doc.setFillColor(0,119,204);
-    doc.rect(10,y-6,pageWidth-20,10,"F");
-    doc.setTextColor(255,255,255);
-    doc.setFontSize(12);
-    doc.setFont("helvetica","bold");
-    doc.text(event, 15, y);
-    y += 12;
-
-    doc.setTextColor(0,0,0);
-    const eventData = allData.filter(d=>d.event===event);
-
-    eventData.forEach(d=>{
-      if (y > pageHeight - 30) { doc.addPage(); y = 20; }
-
-      doc.setFillColor(240,247,255);
-      doc.rect(12,y-5,pageWidth-24,28,"F");
-
-      doc.setFontSize(11);
-      doc.setFont("helvetica","bold");
-      doc.text(d.name, 18, y);
-      doc.setFont("helvetica","normal");
-      doc.setFontSize(10);
-      doc.text(`Institute: ${d.institute}`, 18, y+6);
-      doc.text(`Dept: ${d.dept}`, 18, y+11);
-      doc.text(`Phone: ${d.phone}`, 18, y+16);
-      doc.text(`Payment ID: ${d.paymentId || 'N/A'}`, 18, y+21);
-
-      y += 32;
-    });
-  });
-
-  // 🔥 TABLE PAGE
-  doc.addPage();
-  doc.setFontSize(16);
-  doc.setTextColor(0,119,204);
-  doc.text("Complete Participant Table", 15, 20);
-
-  let tableY = 30;
-
-  // Header row
-  doc.setFillColor(0,119,204);
-  doc.rect(15, tableY-6, 180, 8, "F");
-  doc.setTextColor(255,255,255);
-  doc.setFontSize(10);
-  doc.text("Name", 18, tableY);
-  doc.text("Department", 70, tableY);
-  doc.text("Event", 120, tableY);
-  doc.text("Contact", 155, tableY);
-
-  tableY += 8;
-  doc.setTextColor(0,0,0);
-
-  allData.forEach((d,i)=>{
-    if(tableY > pageHeight-15){
-      doc.addPage();
-      tableY = 20;
-    }
-
-    doc.text(d.name.substring(0,22), 18, tableY);
-    doc.text(d.dept.substring(0,15), 70, tableY);
-    doc.text(d.event.substring(0,12), 120, tableY);
-    doc.text(d.phone, 155, tableY);
-
-    tableY += 7;
-  });
-
-  doc.save("MAP-TECH-2K26-Professional-Report.pdf");
-
-  if (typeof showAlert === "function") {
-    showAlert("PDF download started 📄");
-  }
-
-  setTimeout(()=> downloadingPDF = false, 2000);
-};
+/* DOWNLOAD FILTERED DATA */
+function getDownloadData(){
+  const status=downloadFilter.value;
+  if(status==='all') return allData;
+  return allData.filter(d=>d.paymentStatus===status);
+}
+window.getDownloadData=getDownloadData;
 </script>
 </body>
 </html>
