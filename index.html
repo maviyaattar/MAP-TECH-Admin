@@ -96,7 +96,7 @@ body{font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:linear-g
 </head>
 <body>
 <!-- Loading Overlay -->
-<div class="loader-overlay" id="loadingOverlay" style="display:flex">
+<div class="loader-overlay" id="loadingOverlay" style="display:flex" role="status" aria-live="polite" aria-label="Loading registrations">
   <div class="loader"></div>
 </div>
 
@@ -219,7 +219,7 @@ function render(data){
       
       <!-- Status Dropdown (Hidden in Dropdown) -->
       <div class="status-dropdown">
-        <select class="${d.paymentStatus||'pending'}" onchange="setStatus('${d.id}',this.value)">
+        <select class="${d.paymentStatus||'pending'}" onchange="setStatus('${d.id}',this.value)" aria-label="Payment status for ${d.name}">
           <option value="pending" ${(d.paymentStatus||'pending')==='pending'?'selected':''}>⏳ Pending</option>
           <option value="verified" ${d.paymentStatus==='verified'?'selected':''}>✓ Verified</option>
           <option value="rejected" ${d.paymentStatus==='rejected'?'selected':''}>✗ Rejected</option>
@@ -254,7 +254,8 @@ search.oninput=applyFilters;
 filterEvent.onchange=applyFilters;
 
 function applyFilters(){
-  let data=allData.filter(d=>(d.name||'').toLowerCase().includes(search.value.toLowerCase()));
+  const searchLower=search.value.toLowerCase();
+  let data=allData.filter(d=>(d.name||'').toLowerCase().includes(searchLower));
   if(filterEvent.value) data=data.filter(d=>d.event===filterEvent.value);
   render(data);
 }
@@ -306,7 +307,8 @@ window.downloadExcel = function () {
     const events = [...new Set(data.map(d => d.event))];
     events.forEach(ev => {
       const cleanName = (ev || "Event")
-        .replace(/[:\\/\?\*\[\]]/g, "")
+        .replace(/[:\\/\?\*\[\]<>\|]/g, "")
+        .trim()
         .substring(0, 31);
 
       const ws = XLSX.utils.json_to_sheet(
@@ -327,7 +329,7 @@ window.downloadExcel = function () {
     const summary = XLSX.utils.json_to_sheet(events.map(ev => ({
       Event: ev,
       Registrations: data.filter(d => d.event === ev).length,
-      Amount: data.filter(d => d.event === ev).reduce((a,b)=>a+(parseFloat(b.paymentAmount)||0),0)
+      Amount: data.filter(d => d.event === ev).reduce((sum,registration)=>sum+(parseFloat(registration.paymentAmount)||0),0)
     })));
     XLSX.utils.book_append_sheet(wb, summary, "Summary");
 
