@@ -615,7 +615,11 @@ window.downloadPDF = function () {
     yPos = 50;
 
     // Table Header
-    const colWidths = [50, 60, 45, 35]; // Name, Event, Branch, Number
+    const COL_NAME_WIDTH = 50;
+    const COL_EVENT_WIDTH = 60;
+    const COL_BRANCH_WIDTH = 45;
+    const COL_PHONE_WIDTH = 35;
+    const colWidths = [COL_NAME_WIDTH, COL_EVENT_WIDTH, COL_BRANCH_WIDTH, COL_PHONE_WIDTH];
     let xPos = margin;
     
     doc.setFillColor(107, 70, 193);
@@ -666,11 +670,16 @@ window.downloadPDF = function () {
         xPos += width;
       });
       
-      // Text - truncate if too long
-      const name = (participant.name || 'N/A').substring(0, 20);
-      const event = (participant.event || 'N/A').substring(0, 25);
-      const branch = (participant.dept || 'N/A').substring(0, 18);
-      const phone = (participant.phone || 'N/A').substring(0, 12);
+      // Text - truncate if too long and add ellipsis
+      const truncate = (text, max) => {
+        const str = text || 'N/A';
+        return str.length > max ? str.substring(0, max - 3) + '...' : str;
+      };
+      
+      const name = truncate(participant.name, 20);
+      const event = truncate(participant.event, 25);
+      const branch = truncate(participant.dept, 18);
+      const phone = truncate(participant.phone, 12);
       
       doc.text(name, margin + colWidths[0]/2, yPos + 7, { align: 'center' });
       doc.text(event, margin + colWidths[0] + colWidths[1]/2, yPos + 7, { align: 'center' });
